@@ -79,6 +79,20 @@
         "language": "dylan",
         "path": "./snippets/dylan.json"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "vscode-dylan.sayHello",
+        "title": "Say Hello"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "vscode-dylan.sayHello",
+          "when": "editorLangId == dylan"
+        }
+      ]
+    }
   }
 }
