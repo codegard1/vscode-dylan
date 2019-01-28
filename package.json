@@ -82,14 +82,14 @@
     ],
     "commands": [
       {
-        "command": "vscode-dylan.sayHello",
+        "command": "vscode-dylan.buildProject",
         "title": "Say Hello"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "vscode-dylan.sayHello",
+          "command": "vscode-dylan.buildProject",
           "when": "editorLangId == dylan"
         }
       ]
