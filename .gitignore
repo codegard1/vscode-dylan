@@ -1,3 +1,7 @@
 node_modules
 vscode-dylan-*.vsix
 *.map
+*.lid
+*.hdp
+*.dylan
+registry
