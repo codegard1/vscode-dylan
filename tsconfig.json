@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es6",
-    "outDir": "out",
+    "target": "es2016",
+    "jsx": "preserve",
     "lib": [
-      "es6"
+      "es2016"
     ],
-    "sourceMap": true
+    "outDir": "out",
+    "rootDir": "out"
   },
+  "include": [
+    "out/**/*.ts"
+  ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/node_modules/*"
   ]
 }
