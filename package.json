@@ -34,7 +34,8 @@
     "vscode": "^1.1.22"
   },
   "activationEvents": [
-    "onLanguage:dylan"
+    "onLanguage:dylan",
+    "onCommand:vscode-dylan.buildProject"
   ],
   "contributes": {
     "languages": [
@@ -83,14 +84,13 @@
     "commands": [
       {
         "command": "vscode-dylan.buildProject",
-        "title": "Say Hello"
+        "title": "Build Project"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "vscode-dylan.buildProject",
-          "when": "editorLangId == dylan"
+          "command": "vscode-dylan.buildProject"
         }
       ]
     }
