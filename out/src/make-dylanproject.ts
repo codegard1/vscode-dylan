@@ -1,66 +1,41 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import { execFile } from 'child_process';
-import vscode = require('vscode');
 import * as path from 'path';
+import * as vscode from 'vscode';
 
 /**
- * 
- * @param startPath The path in which to search. Default is the current directory 
- * (i.e. the project directory)
- * @param filter Regular Expression identifying which type of file to search for. 
- * Default is .lid
+ * Get the Uri of the LID file in the same directory as the currently opened file
  */
-function getProjectName(startPath: string = '.', filter: RegExp = /\.lid$/): string {
-  // console.log('Starting from dir ' + startPath + '/');
-  if (!fs.existsSync(startPath)) {
-    console.log("no dir ", startPath);
-    return null;
-  }
+async function getLidFile(): Promise<vscode.Uri[]> {
+  const currentFileName: string = vscode.window.activeTextEditor.document.fileName;
+  const currentFolderName: string = path.dirname(currentFileName);
+  const relativePath: string = vscode.workspace.asRelativePath(currentFolderName);
+  // const isCurrentFolderReal: boolean = fs.existsSync(currentFolderName); // redundant?
 
-  const files: Array<string> = fs.readdirSync(startPath);
-  let results: Array<string> = [];
-  for (let i = 0; i < files.length; i++) {
-    let filename = path.join(startPath, files[i]);
-    let stat = fs.lstatSync(filename);
-    // console.log(filter.test(filename));
-    if (stat.isDirectory()) {
-      getProjectName(filename, filter); //recurse
-    }
-    else if (filter.test(filename)) {
-      results.push(filename);
-    }
-  };
-
-  // Return the first lid file found or nothing
-  return results.length > 0 ? results[0].split('.')[0] : '';
+  const lidFile = await vscode.workspace.findFiles(`${relativePath}/*.lid`, 'registry/*', 1);
+  return lidFile;
 };
 
 /**
  * 
- * @param projectName Name of the project to build. 
+ * @param lidFile Uri of the LID file 
  */
-async function invokeBuildTool(projectName: string): Promise<any> {
+async function invokeBuildTool(lidFile: vscode.Uri[]): Promise<any> {
   return new Promise(async (resolve, reject) => {
-    if (!projectName) reject('No lid file found');
+    if (!lidFile) reject('No lid file found');
 
-    // Get the lid file 
-    const lidFileName: string = `${projectName}.lid`;
-    fs.exists(lidFileName, doesExist => {
-      if (doesExist) {
-        console.log(`LID file does exist`);
-      } else {
-        reject(`Error: Could not find the LID file (${lidFileName})`);
-      }
-    });
+    // Absolute path of the LID file
+    const lidFileName: string = lidFile[0].fsPath;
 
     // The name / absolute location of the Dylan Compiler
     const dylanCompiler: string = os.type() === "Windows_NT" ? 'dylan-compiler-with-tools.exe' : 'dylan-compiler-with-tools'
+
     // array of arguments to pass to the Compiler
     const buildArgs: Array<string> = os.type() === "Windows_NT" ? ['/build', lidFileName] : ['-build', lidFileName];
 
     // Announcement
-    console.log(`Build project ${projectName} from ${lidFileName}\n`);
+    console.log(`Build project ${lidFile} from ${lidFileName}\n\n`);
 
     // Run the compiler in a new console and send the output to the local one
     execFile(dylanCompiler, buildArgs, (err: Error, stdout: string, stderr: string) => {
@@ -73,20 +48,24 @@ async function invokeBuildTool(projectName: string): Promise<any> {
 
 /**
  * 
- * @param projectName 
+ * @param lidFile The Uri of the project LID file 
  */
-function invokeProjectExecutable(projectName: string): Promise<any> {
-  return new Promise((resolve, reject) => {
+function invokeProjectExecutable(lidFile: vscode.Uri[]): Promise<any> {
+  return new Promise(async (resolve, reject) => {
+    // strip the prject name from the lid file
+    let projectName: string = await (lidFile[0].path.split(/.*\/(.*)\.lid$/)[1]);
+    console.log(projectName);
+
+    // Determine the executable name by host OS
     const executableName: string = os.type() === "Windows_NT"
       ? `${projectName}.exe`
       : `${projectName}`;
+
+    // This assumes the executable is in the default location
     const executableLocation: string = `${process.env.OPEN_DYLAN_USER_ROOT}\\bin\\${executableName}`;
 
-    if (fs.existsSync(executableLocation)) {
-      console.log(`${executableLocation} does exist.`);
-    } else {
-      reject(`Could not find the executable (${executableLocation})`);
-    }
+    // Fail if the executable can't be located
+    if (!fs.existsSync(executableLocation)) { reject(`Could not find the executable (${executableLocation})`); }
 
     // Announcement
     console.log(`About to run ${executableName}\n`);
@@ -100,23 +79,32 @@ function invokeProjectExecutable(projectName: string): Promise<any> {
   });
 }
 
-export async function makeDylanProject(projectName: string = getProjectName()) {
+/**
+ * The main function: successively find the LID file, build the project, then run the resulting executable
+ * @returns 0: Error | 1: Success
+ */
+export async function makeDylanProject() {
+  getLidFile().then(async (name) => {
 
-  await invokeBuildTool(projectName)
-    .then(data => {
-      console.log(data);
-    }, error => {
-      console.error(`Error during invokeBuildTool: \n ${error}`);
-    });
+    const isProjectBuilt: boolean = await invokeBuildTool(name)
+      .then(data => {
+        console.log(data);
+        return true;
+      }, error => {
+        console.error(`Error during invokeBuildTool: \n ${error}`);
+        return false;
+      });
 
-  await invokeProjectExecutable(projectName)
-    .then(data => {
-      console.log(data);
-      return 0;
-    })
-    .catch(data => {
-      console.error(`Error during invokeProjectExecutable: \n ${data}`);
-    });
+    if (isProjectBuilt)
+      invokeProjectExecutable(name)
+        .then(data => {
+          console.log(data);
+          return 0;
+        }, err => {
+          console.error(`Error during invokeProjectExecutable: \n ${err}`);
+          return 1;
+        });
+  }, (err) => {
+    console.log(`Error receiving project name in makeDylanProject():\n${err}`);
+  });
 }
-
-makeDylanProject(); //testing
