@@ -30,9 +30,13 @@ async function invokeBuildTool(lidFile: vscode.Uri[]): Promise<any> {
 
     // The name / absolute location of the Dylan Compiler
     const dylanCompiler: string = os.type() === "Windows_NT" ? 'dylan-compiler-with-tools.exe' : 'dylan-compiler-with-tools'
+    
+    // Fail if the compiler executable can't be located
+    if (!fs.existsSync(dylanCompiler)) { reject(`Could not find the compiler executable (${dylanCompiler}).\nIs is added to PATH?`); }
 
     // array of arguments to pass to the Compiler
     const buildArgs: Array<string> = os.type() === "Windows_NT" ? ['/build', lidFileName] : ['-build', lidFileName];
+
 
     // Announcement
     console.log(`Build project ${lidFile} from ${lidFileName}\n\n`);
