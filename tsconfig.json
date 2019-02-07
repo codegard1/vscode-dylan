@@ -6,8 +6,9 @@
     "lib": [
       "es2016"
     ],
-    "outDir": "out",
-    "rootDir": "out"
+    "sourceMap": true,
+    "rootDir": "out",
+    "outDir": "out"
   },
   "include": [
     "out/**/*.ts"
